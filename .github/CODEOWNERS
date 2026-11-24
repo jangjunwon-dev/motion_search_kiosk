@@ -1,0 +1,9 @@
+# 파트별 리뷰 담당
+# 🅐 모델(팀원 himmelmin): training/ models/ data/    🅑 서비스(장준원): kiosk/ web/ configs/
+*                     @jangjunwon-dev @himmelmin
+/training/            @himmelmin
+/models/              @himmelmin
+/data/                @himmelmin
+/kiosk/               @jangjunwon-dev
+/web/                 @jangjunwon-dev
+/configs/             @jangjunwon-dev

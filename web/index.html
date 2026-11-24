@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>모션인식 탐색 키오스크</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 상단 바 -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">✋</span>
+      <div>
+        <div class="brand-title" id="kiosk-title">캠퍼스 안내 키오스크</div>
+        <div class="brand-sub" id="kiosk-sub">화면을 만지지 않고 손동작으로 찾아보세요</div>
+      </div>
+    </div>
+    <div class="status" id="status">
+      <span class="dot" id="status-dot"></span>
+      <span id="status-text">연결 중…</span>
+    </div>
+  </header>
+
+  <!-- 화면들 -->
+  <main id="screens">
+    <!-- 0. 대기 화면 -->
+    <section class="screen active" id="screen-idle">
+      <div class="idle-hand">✋</div>
+      <h1>손을 들어 시작하세요</h1>
+      <p>검지 ☝️ 를 펴서 화면 쪽으로 들어 주세요</p>
+      <button class="target big-btn" data-action="start">시작하기</button>
+    </section>
+
+    <!-- 1. 홈 (카테고리) -->
+    <section class="screen" id="screen-home">
+      <h2 class="screen-title">무엇을 찾으세요?</h2>
+      <div class="tile-grid" id="tile-grid"></div>
+    </section>
+
+    <!-- 2. 카테고리 목록 (스와이프 페이지) -->
+    <section class="screen" id="screen-list">
+      <div class="list-head">
+        <button class="target nav-btn" data-action="back">← 뒤로</button>
+        <h2 class="screen-title" id="list-title"></h2>
+        <div class="pager" id="pager"></div>
+      </div>
+      <div class="list-viewport">
+        <button class="target arrow" data-action="prev" aria-label="이전">‹</button>
+        <div class="card-row" id="card-row"></div>
+        <button class="target arrow" data-action="next" aria-label="다음">›</button>
+      </div>
+    </section>
+
+    <!-- 3. 상세 -->
+    <section class="screen" id="screen-detail">
+      <div class="list-head">
+        <button class="target nav-btn" data-action="back">← 뒤로</button>
+        <h2 class="screen-title" id="detail-cat"></h2>
+        <div></div>
+      </div>
+      <article class="detail">
+        <h1 id="detail-title"></h1>
+        <p class="detail-sub" id="detail-sub"></p>
+        <p class="detail-body" id="detail-body"></p>
+        <div class="tags" id="detail-tags"></div>
+        <button class="target big-btn" data-action="confirm" id="detail-action">확인</button>
+        <p class="hint">👍 엄지를 올려 0.7초 유지해도 확인됩니다</p>
+      </article>
+    </section>
+  </main>
+
+  <!-- 확인 팝업 -->
+  <div class="modal" id="modal">
+    <div class="modal-box">
+      <div class="modal-icon">✅</div>
+      <h2 id="modal-title">완료</h2>
+      <p id="modal-body"></p>
+      <div class="qr" id="modal-qr"></div>
+      <button class="target big-btn" data-action="close-modal">닫기</button>
+    </div>
+  </div>
+
+  <!-- 하단 제스처 안내 -->
+  <footer class="guide">
+    <div class="g" data-g="one"><b>☝️</b>가리키기</div>
+    <div class="g" data-g="fist"><b>✊</b>선택</div>
+    <div class="g" data-g="palm"><b>✋↔</b>넘기기</div>
+    <div class="g" data-g="like"><b>👍</b>확인</div>
+    <div class="g" data-g="dislike"><b>👎</b>뒤로</div>
+    <div class="g" data-g="peace"><b>✌️</b>처음으로</div>
+  </footer>
+
+  <!-- 카메라 미리보기 -->
+  <div class="preview" id="preview">
+    <img id="preview-img" alt="카메라 미리보기">
+    <div class="preview-label">카메라 · <span id="preview-stats">-</span></div>
+  </div>
+
+  <!-- 커서 / 유지 게이지 / 알림 -->
+  <div class="cursor" id="cursor"><svg viewBox="0 0 64 64"><circle class="ring-bg" cx="32" cy="32" r="26"/><circle class="ring" id="dwell-ring" cx="32" cy="32" r="26"/></svg><div class="cursor-dot"></div></div>
+  <div class="hold" id="hold"><div class="hold-icon" id="hold-icon"></div><div class="hold-bar"><i id="hold-fill"></i></div></div>
+  <div class="toast" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

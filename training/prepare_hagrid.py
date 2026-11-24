@@ -1,0 +1,218 @@
+"""HaGRID 손동작 데이터셋 → YOLO / COCO(RF-DETR) 형식 변환.
+
+HaGRID 주석 형식 (클래스별 JSON, 예: annotations/train/one.json)
+    {"<image_id>": {"bboxes": [[x, y, w, h], ...],    # 0~1 정규화, (x, y) = 왼쪽 위
+                    "labels": ["one", "no_gesture"],  # 박스마다 클래스
+                    ...}}
+이미지 위치: <images_root>/<class>/<image_id>.jpg
+    (축소판처럼 폴더 구조가 달라도 이미지ID 로 하위 폴더 전체를 찾음)
+
+사용 예 (저장소 루트에서)
+    python training/prepare_hagrid.py --ann-dir D:/hagrid/annotations \
+        --images-root D:/hagrid/images --out data/processed/hagrid_v1 \
+        --classes one fist palm like dislike peace --max-per-class 3000 --format both
+
+결과
+    data/processed/hagrid_v1/
+        yolo/images/{train,val,test}/*.jpg   yolo/labels/{train,val,test}/*.txt   data.yaml
+        coco/{train,valid,test}/*.jpg + _annotations.coco.json            (RF-DETR 형식)
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import random
+import shutil
+from pathlib import Path
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+
+SPLIT_DIRS = {"train": "train", "val": "valid", "test": "test"}  # YOLO 이름 → RF-DETR(COCO) 이름
+
+
+def hagrid_to_yolo(box: Sequence[float]) -> Tuple[float, float, float, float]:
+    """HaGRID [x, y, w, h](왼쪽 위 기준) → YOLO [cx, cy, w, h] (모두 0~1)."""
+    x, y, w, h = box
+    x = min(max(x, 0.0), 1.0)
+    y = min(max(y, 0.0), 1.0)
+    w = min(w, 1.0 - x)
+    h = min(h, 1.0 - y)
+    return (x + w / 2, y + h / 2, w, h)
+
+
+def hagrid_to_coco(box: Sequence[float], img_w: int, img_h: int) -> List[float]:
+    """HaGRID 정규화 박스 → COCO 픽셀 [x, y, w, h]."""
+    cx, cy, w, h = hagrid_to_yolo(box)
+    return [round((cx - w / 2) * img_w, 2), round((cy - h / 2) * img_h, 2),
+            round(w * img_w, 2), round(h * img_h, 2)]
+
+
+def convert_record(rec: dict, class_to_id: Dict[str, int],
+                   keep_no_gesture: bool) -> List[Tuple[int, Tuple[float, float, float, float]]]:
+    """주석 1건 → [(class_id, yolo_box), ...]. 선택 안 한 클래스 박스는 버림."""
+    out = []
+    for box, label in zip(rec.get("bboxes", []), rec.get("labels", [])):
+        if label == "no_gesture" and not keep_no_gesture:
+            continue
+        if label not in class_to_id:
+            continue
+        yb = hagrid_to_yolo(box)
+        if yb[2] <= 0 or yb[3] <= 0:
+            continue
+        out.append((class_to_id[label], yb))
+    return out
+
+
+def find_image(images_root: Path, cls: str, image_id: str) -> Optional[Path]:
+    for cand in (images_root / cls / f"{image_id}.jpg", images_root / f"{image_id}.jpg",
+                 images_root / cls / f"{image_id}.png"):
+        if cand.exists():
+            return cand
+    hits = list(images_root.rglob(f"{image_id}.*"))
+    return hits[0] if hits else None
+
+
+def load_annotations(ann_dir: Path, split: str, cls: str) -> Dict[str, dict]:
+    for cand in (ann_dir / split / f"{cls}.json", ann_dir / f"{split}_{cls}.json",
+                 ann_dir / f"{cls}.json"):
+        if cand.exists():
+            with open(cand, encoding="utf-8") as f:
+                return json.load(f)
+    return {}
+
+
+def build_split(ann_dir: Path, split: str, classes: Sequence[str], max_per_class: int,
+                seed: int) -> List[Tuple[str, str, dict]]:
+    """[(class, image_id, record)] — 클래스별 최대 max_per_class 개 무작위 추출."""
+    rng = random.Random(seed)
+    items = []
+    for cls in classes:
+        if cls == "no_gesture":
+            continue
+        ann = load_annotations(ann_dir, split, cls)
+        keys = sorted(ann.keys())
+        rng.shuffle(keys)
+        if max_per_class > 0:
+            keys = keys[:max_per_class]
+        items += [(cls, k, ann[k]) for k in keys]
+    return items
+
+
+def write_yolo(items, images_root: Path, out: Path, split: str, class_to_id, keep_no_gesture,
+               copy: bool) -> int:
+    img_dir = out / "yolo" / "images" / split
+    lbl_dir = out / "yolo" / "labels" / split
+    img_dir.mkdir(parents=True, exist_ok=True)
+    lbl_dir.mkdir(parents=True, exist_ok=True)
+    n = 0
+    for cls, image_id, rec in items:
+        src = find_image(images_root, cls, image_id)
+        if src is None:
+            continue
+        labels = convert_record(rec, class_to_id, keep_no_gesture)
+        if not labels:
+            continue
+        dst = img_dir / f"{image_id}{src.suffix}"
+        _place(src, dst, copy)
+        with open(lbl_dir / f"{image_id}.txt", "w", encoding="utf-8") as f:
+            for cid, (cx, cy, w, h) in labels:
+                f.write(f"{cid} {cx:.6f} {cy:.6f} {w:.6f} {h:.6f}\n")
+        n += 1
+    return n
+
+
+def write_coco(items, images_root: Path, out: Path, split: str, classes, class_to_id,
+               keep_no_gesture, copy: bool) -> int:
+    from PIL import Image
+
+    d = out / "coco" / SPLIT_DIRS[split]
+    d.mkdir(parents=True, exist_ok=True)
+    coco = {"images": [], "annotations": [],
+            "categories": [{"id": i, "name": c, "supercategory": "hand"}
+                           for i, c in enumerate(classes)]}
+    ann_id = 0
+    for img_id, (cls, image_id, rec) in enumerate(items):
+        src = find_image(images_root, cls, image_id)
+        if src is None:
+            continue
+        labels = convert_record(rec, class_to_id, keep_no_gesture)
+        if not labels:
+            continue
+        with Image.open(src) as im:
+            w, h = im.size
+        fname = f"{image_id}{src.suffix}"
+        _place(src, d / fname, copy)
+        coco["images"].append({"id": img_id, "file_name": fname, "width": w, "height": h})
+        for box, label in zip(rec["bboxes"], rec["labels"]):
+            if label not in class_to_id or (label == "no_gesture" and not keep_no_gesture):
+                continue
+            bb = hagrid_to_coco(box, w, h)
+            coco["annotations"].append({"id": ann_id, "image_id": img_id,
+                                        "category_id": class_to_id[label], "bbox": bb,
+                                        "area": bb[2] * bb[3], "iscrowd": 0})
+            ann_id += 1
+    with open(d / "_annotations.coco.json", "w", encoding="utf-8") as f:
+        json.dump(coco, f, ensure_ascii=False)
+    return len(coco["images"])
+
+
+def write_data_yaml(out: Path, classes: Sequence[str]) -> Path:
+    p = out / "yolo" / "data.yaml"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    lines = [f"path: {(out / 'yolo').resolve().as_posix()}", "train: images/train",
+             "val: images/val", "test: images/test", "names:"]
+    lines += [f"  {i}: {c}" for i, c in enumerate(classes)]
+    p.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return p
+
+
+def _place(src: Path, dst: Path, copy: bool) -> None:
+    if dst.exists():
+        return
+    if copy:
+        shutil.copy2(src, dst)
+    else:
+        try:
+            dst.symlink_to(src.resolve())
+        except OSError:  # Windows 에서 심볼릭 링크 권한이 없으면 복사
+            shutil.copy2(src, dst)
+
+
+def main(argv: Optional[Iterable[str]] = None) -> None:
+    ap = argparse.ArgumentParser(description="HaGRID → YOLO / COCO 변환")
+    ap.add_argument("--ann-dir", required=True, type=Path)
+    ap.add_argument("--images-root", required=True, type=Path)
+    ap.add_argument("--out", default=Path("data/processed/hagrid_v1"), type=Path)
+    ap.add_argument("--classes", nargs="+",
+                    default=["one", "fist", "palm", "like", "dislike", "peace"])
+    ap.add_argument("--keep-no-gesture", action="store_true",
+                    help="no_gesture(제스처 아닌 손) 박스도 클래스로 학습 → 오탐 감소용")
+    ap.add_argument("--max-per-class", type=int, default=3000, help="0 = 전부")
+    ap.add_argument("--splits", nargs="+", default=["train", "val", "test"])
+    ap.add_argument("--format", choices=["yolo", "coco", "both"], default="yolo")
+    ap.add_argument("--copy", action="store_true", help="심볼릭 링크 대신 복사")
+    ap.add_argument("--seed", type=int, default=42)
+    args = ap.parse_args(argv)
+
+    classes = list(args.classes)
+    if args.keep_no_gesture and "no_gesture" not in classes:
+        classes.append("no_gesture")
+    class_to_id = {c: i for i, c in enumerate(classes)}
+    for split in args.splits:
+        # 검증·테스트는 학습의 1/5 만 사용 (시간 절약)
+        cap = args.max_per_class if split == "train" else max(1, args.max_per_class // 5)
+        items = build_split(args.ann_dir, split, classes, cap, args.seed)
+        if args.format in ("yolo", "both"):
+            n = write_yolo(items, args.images_root, args.out, split, class_to_id,
+                           args.keep_no_gesture, args.copy)
+            print(f"[YOLO] {split}: {n}장")
+        if args.format in ("coco", "both"):
+            n = write_coco(items, args.images_root, args.out, split, classes, class_to_id,
+                           args.keep_no_gesture, args.copy)
+            print(f"[COCO] {SPLIT_DIRS[split]}: {n}장")
+    if args.format in ("yolo", "both"):
+        print("data.yaml →", write_data_yaml(args.out, classes))
+
+
+if __name__ == "__main__":
+    main()

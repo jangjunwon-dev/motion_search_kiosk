@@ -1,0 +1,14 @@
+# 기본 시연 시나리오 (명령 인식률 측정용) — 한 줄에 하나 또는 쉼표로 구분
+# 사용 가능한 명령: click, swipe_left, swipe_right, confirm, back, home
+click          # 대기화면 '시작하기' 또는 홈 → '건물 안내'
+swipe_left     # 다음 페이지
+swipe_right    # 이전 페이지
+click          # 카드 선택 → 상세
+confirm        # 👍 확인 → QR 팝업
+back           # 👎 팝업 닫기
+back           # 👎 목록으로
+home           # ✌️ 처음으로
+click          # '오늘의 식단'
+click          # 첫 카드
+confirm
+home

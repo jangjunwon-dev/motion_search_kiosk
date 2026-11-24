@@ -1,0 +1,6 @@
+# 실제 탐지 모델 추론·학습용 (torch 포함, 용량 큼)
+# GPU(NVIDIA) PC 는 먼저 https://pytorch.org 에서 CUDA 버전 torch 를 설치한 뒤 이 파일 설치
+-r requirements.txt
+ultralytics>=8.3.200         # YOLO26 지원 버전
+rfdetr>=1.2                  # RF-DETR (비교 실험)
+supervision>=0.25            # RF-DETR mAP 계산

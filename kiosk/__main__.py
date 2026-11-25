@@ -6,12 +6,33 @@
 from __future__ import annotations
 
 import argparse
+import socket
 import webbrowser
 
 import uvicorn
 
 from .config import load_config
 from .server import create_app
+
+
+def port_free(host: str, port: int) -> bool:
+    """그 포트로 서버를 열 수 있는지 (다른 프로그램이 쓰고 있지 않은지)."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind((host, port))
+            return True
+        except OSError:
+            return False
+
+
+def pick_port(host: str, port: int, tries: int = 10) -> int:
+    """포트가 사용 중이면 다음 번호(+1, +2 ...)로 자동 변경."""
+    for p in range(port, port + tries):
+        if port_free(host, p):
+            if p != port:
+                print(f"[키오스크] ⚠️ {port}번 포트를 다른 프로그램이 쓰고 있어 {p}번으로 실행합니다.")
+            return p
+    raise SystemExit(f"❌ {port}~{port + tries - 1}번 포트가 모두 사용 중입니다. --port 로 지정하세요.")
 
 
 def main() -> None:
@@ -43,7 +64,7 @@ def main() -> None:
         cfg["camera"]["loop"] = not args.no_loop
 
     host = cfg["server"].get("host", "127.0.0.1")
-    port = args.port or cfg["server"].get("port", 8000)
+    port = pick_port(host, args.port or cfg["server"].get("port", 8000))
     url = f"http://{host}:{port}"
     print(f"[키오스크] {url} 에서 실행합니다. (탐지기: {cfg['detector']['backend']})")
     if not args.no_browser:

@@ -57,3 +57,16 @@ def test_웹소켓_이벤트_전달():
                 if "confirm" in seen:
                     break
             assert "confirm" in seen
+
+
+def test_사용중인_포트는_다음번호로():
+    import socket
+
+    from kiosk.__main__ import pick_port
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as busy:
+        busy.bind(("127.0.0.1", 0))
+        busy.listen()
+        used = busy.getsockname()[1]
+        got = pick_port("127.0.0.1", used)
+        assert got != used and used < got < used + 10

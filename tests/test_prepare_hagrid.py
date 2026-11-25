@@ -44,7 +44,7 @@ def fake_hagrid(tmp_path):
             iid = f"{cls}_{i}"
             Image.new("RGB", (64, 48)).save(imgs / cls / f"{iid}.jpg")
             data[iid] = {"bboxes": [[0.2, 0.2, 0.3, 0.4]], "labels": [cls]}
-        (ann / f"{cls}.json").write_text(json.dumps(data))
+        (ann / f"{cls}.json").write_text(json.dumps(data), encoding="utf-8")
     return tmp_path
 
 
@@ -55,11 +55,11 @@ def test_전체_변환_yolo_coco(fake_hagrid):
              "--format", "both", "--copy"])
     labels = list((out / "yolo" / "labels" / "train").glob("*.txt"))
     assert len(labels) == 6
-    line = (out / "yolo" / "labels" / "train" / "fist_0.txt").read_text().split()
+    line = (out / "yolo" / "labels" / "train" / "fist_0.txt").read_text(encoding="utf-8").split()
     assert line[0] == "1"
-    coco = json.loads((out / "coco" / "train" / "_annotations.coco.json").read_text())
+    coco = json.loads((out / "coco" / "train" / "_annotations.coco.json").read_text(encoding="utf-8"))
     assert len(coco["images"]) == 6 and len(coco["annotations"]) == 6
-    assert (out / "yolo" / "data.yaml").read_text().count(": ") >= 5
+    assert (out / "yolo" / "data.yaml").read_text(encoding="utf-8").count(": ") >= 5
 
 
 def test_split_구분없는_주석은_사람단위로_겹치지않게_나눔(tmp_path):
@@ -75,7 +75,7 @@ def test_split_구분없는_주석은_사람단위로_겹치지않게_나눔(tmp
         iid = f"img{i:03d}"
         Image.new("RGB", (32, 32)).save(imgs / f"{iid}.jpg")
         data[iid] = {"bboxes": [[0.2, 0.2, 0.3, 0.3]], "labels": ["one"], "user_id": f"u{i // 4}"}
-    (ann / "one.json").write_text(json.dumps(data))
+    (ann / "one.json").write_text(json.dumps(data), encoding="utf-8")
 
     out = tmp_path / "out"
     ph.main(["--ann-dir", str(tmp_path), "--images-root", str(tmp_path / "imgs"),

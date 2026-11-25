@@ -22,6 +22,13 @@ models/*
 *.engine
 runs/
 
+# 영상 (얼굴이 나오고 용량이 큼 → 공유 드라이브 시연영상/ 에만)
+videos/
+*.mp4
+*.mov
+*.avi
+*.mkv
+
 # 실행 로그 (성능평가용 CSV는 공유 드라이브에 올림)
 logs/
 

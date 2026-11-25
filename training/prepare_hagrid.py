@@ -120,10 +120,14 @@ def load_annotations(ann_dir: Path, split: str, cls: str) -> Dict[str, dict]:
         hits = sorted(ann_dir.rglob(f"{cls}.json"))
         cand = hits[0] if hits else None
     if cand is None:
+        print(f"⚠️  {cls}.json 주석 파일을 찾지 못했습니다 → --ann-dir 경로를 확인하세요")
         return {}
     with open(cand, encoding="utf-8") as f:
         data = json.load(f)
-    return {k: v for k, v in data.items() if assign_split(k, v) == split}
+    picked = {k: v for k, v in data.items() if assign_split(k, v) == split}
+    if not picked:
+        print(f"⚠️  {split}/{cls}: 사람 단위로 나눈 결과 0장 (데이터가 너무 적은 경우)")
+    return picked
 
 
 def build_split(ann_dir: Path, split: str, classes: Sequence[str], max_per_class: int,
@@ -135,8 +139,6 @@ def build_split(ann_dir: Path, split: str, classes: Sequence[str], max_per_class
         if cls == "no_gesture":
             continue
         ann = load_annotations(ann_dir, split, cls)
-        if not ann:
-            print(f"⚠️  {split}/{cls}: 주석을 찾지 못했습니다 (--ann-dir 확인)")
         keys = sorted(ann.keys())
         rng.shuffle(keys)
         if max_per_class > 0:
@@ -252,6 +254,9 @@ def main(argv: Optional[Iterable[str]] = None) -> None:
         if split != "train" and cap > 0:
             cap = max(1, cap // 5)
         items = build_split(args.ann_dir, split, classes, cap, args.seed)
+        if split == "train" and not items:
+            raise SystemExit("❌ 학습(train) 데이터가 0장입니다. --ann-dir / --images-root 경로를"
+                             " 확인하세요. (one.json 등이 들어 있는 폴더가 --ann-dir)")
         if args.format in ("yolo", "both"):
             n = write_yolo(items, args.images_root, args.out, split, class_to_id,
                            args.keep_no_gesture, args.copy)

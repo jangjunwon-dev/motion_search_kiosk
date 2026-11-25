@@ -21,7 +21,7 @@
 
 | 파트 | 담당 | 주요 폴더 | 브랜치 접두어 |
 |---|---|---|---|
-| 🅐 손동작 탐지 모델 (데이터·학습·성능평가) | **팀원 (GitHub `himmelmin`)** | `training/`, `models/`, `data/` | `feat/model-*` |
+| 🅐 손동작 탐지 모델 (데이터·학습·성능평가) | **성민수 (GitHub `himmelmin`)** | `training/`, `models/`, `data/` | `feat/model-*` |
 | 🅑 키오스크 서비스 (제스처 해석·웹 화면·통합) | **장준원** (저장소 관리) | `kiosk/`, `web/`, `configs/` | `feat/app-*` |
 
 > 역할은 임시 배정입니다. 바꾸려면 이 표와 `AGENTS.md`, `.github/CODEOWNERS` 를 함께 수정하세요.
@@ -87,6 +87,9 @@ python -m kiosk
 
 # 3) RF-DETR 로 바꿔 실행 (성능 비교 시연용)
 python -m kiosk --backend rfdetr --model models/gesture_rfdetr_base.pth
+
+# 4) 녹화 영상으로 실행 — 웹캠 대신 영상 파일 (같은 조건 반복 테스트, 시연 당일 카메라 고장 대비)
+python -m kiosk --video 시연영상/손동작_테스트.mp4          # 끝나면 반복, 한 번만: --no-loop
 ```
 
 브라우저가 자동으로 `http://127.0.0.1:8000` 을 엽니다. 전체 화면은 `F11`.

@@ -96,20 +96,41 @@ class KioskEngine:
         import cv2
 
         cam = self.cfg["camera"]
-        cap = cv2.VideoCapture(cam.get("index", 0))
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, cam.get("width", 1280))
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cam.get("height", 720))
+        video = cam.get("video")  # 녹화 영상 파일 (웹캠 대신) — 재현 가능한 테스트·시연 백업용
+        if video:
+            cap = cv2.VideoCapture(str(video))
+            frame_dt = 1.0 / (cap.get(cv2.CAP_PROP_FPS) or 30.0)
+            source = f"영상 {video}"
+        else:
+            cap = cv2.VideoCapture(cam.get("index", 0))
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, cam.get("width", 1280))
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cam.get("height", 720))
+            frame_dt = 0.0
+            source = f"카메라 {cam.get('index', 0)}"
         self.camera_ok = cap.isOpened()
         if not self.camera_ok:
-            print("[엔진] ⚠️ 카메라를 열 수 없습니다. camera.index 를 확인하세요."
+            what = "camera.video 경로" if video else "camera.index"
+            print(f"[엔진] ⚠️ {source} 을(를) 열 수 없습니다. {what} 를 확인하세요."
                   " 키보드·마우스 모드로 계속합니다.")
             return
-        print(f"[엔진] 카메라 {cam.get('index', 0)} 시작, 탐지기 = {self.detector.name}")
+        print(f"[엔진] {source} 시작, 탐지기 = {self.detector.name}")
         last_status = 0.0
         prev = time.monotonic()
+        next_due = prev
         while self._running:
+            if frame_dt:  # 영상은 원래 속도로 재생 (제스처 판정이 시간 기준이므로)
+                wait = next_due - time.monotonic()
+                if wait > 0:
+                    time.sleep(wait)
+                next_due = max(next_due + frame_dt, time.monotonic() - frame_dt)
             ok, frame = cap.read()
             if not ok:
+                if video and cam.get("loop", True):
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # 끝나면 처음부터 반복
+                    continue
+                if video:
+                    print("[엔진] 영상 재생 끝")
+                    break
                 time.sleep(0.01)
                 continue
             now = time.monotonic()

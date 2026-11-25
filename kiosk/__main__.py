@@ -21,6 +21,8 @@ def main() -> None:
     ap.add_argument("--backend", choices=["mock", "yolo", "rfdetr"], help="탐지기 강제 지정")
     ap.add_argument("--model", help="모델 가중치 경로 (configs 값 대신)")
     ap.add_argument("--camera", type=int, help="카메라 번호 (기본 0)")
+    ap.add_argument("--video", help="웹캠 대신 녹화 영상 파일로 실행 (테스트·시연 백업)")
+    ap.add_argument("--no-loop", action="store_true", help="--video 를 한 번만 재생")
     ap.add_argument("--port", type=int, default=None)
     ap.add_argument("--no-browser", action="store_true", help="브라우저 자동 실행 안 함")
     args = ap.parse_args()
@@ -35,6 +37,10 @@ def main() -> None:
         cfg["detector"]["model_path"] = args.model
     if args.camera is not None:
         cfg["camera"]["index"] = args.camera
+    if args.video:
+        cfg["camera"]["video"] = args.video
+        cfg["camera"]["enabled"] = True
+        cfg["camera"]["loop"] = not args.no_loop
 
     host = cfg["server"].get("host", "127.0.0.1")
     port = args.port or cfg["server"].get("port", 8000)

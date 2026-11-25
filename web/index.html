@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>모션인식 탐색 키오스크</title>
+  <title>모션인식 비접촉 주문 키오스크</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -13,8 +13,8 @@
     <div class="brand">
       <span class="brand-mark">✋</span>
       <div>
-        <div class="brand-title" id="kiosk-title">캠퍼스 안내 키오스크</div>
-        <div class="brand-sub" id="kiosk-sub">화면을 만지지 않고 손동작으로 찾아보세요</div>
+        <div class="brand-title" id="kiosk-title">비접촉 주문 키오스크</div>
+        <div class="brand-sub" id="kiosk-sub">화면을 만지지 않고 손동작으로 주문하세요</div>
       </div>
     </div>
     <div class="status" id="status">
@@ -28,14 +28,14 @@
     <!-- 0. 대기 화면 -->
     <section class="screen active" id="screen-idle">
       <div class="idle-hand">✋</div>
-      <h1>손을 들어 시작하세요</h1>
-      <p>검지 ☝️ 를 펴서 화면 쪽으로 들어 주세요</p>
-      <button class="target big-btn" data-action="start">시작하기</button>
+      <h1>손을 들어 주문을 시작하세요</h1>
+      <p>검지 ☝️ 를 펴서 화면 쪽으로 들어 주세요 · 화면은 만지지 않아도 돼요</p>
+      <button class="target big-btn" data-action="start">주문 시작</button>
     </section>
 
     <!-- 1. 홈 (카테고리) -->
     <section class="screen" id="screen-home">
-      <h2 class="screen-title">무엇을 찾으세요?</h2>
+      <h2 class="screen-title">무엇을 드시겠어요?</h2>
       <div class="tile-grid" id="tile-grid"></div>
     </section>
 
@@ -61,25 +61,47 @@
         <div></div>
       </div>
       <article class="detail">
+        <div class="detail-emoji" id="detail-emoji"></div>
         <h1 id="detail-title"></h1>
         <p class="detail-sub" id="detail-sub"></p>
         <p class="detail-body" id="detail-body"></p>
         <div class="tags" id="detail-tags"></div>
-        <button class="target big-btn" data-action="confirm" id="detail-action">확인</button>
-        <p class="hint">👍 엄지를 올려 0.7초 유지해도 확인됩니다</p>
+        <div class="detail-actions" id="detail-actions"></div>
+        <p class="hint" id="detail-hint"></p>
       </article>
+    </section>
+
+    <!-- 4. 장바구니 -->
+    <section class="screen" id="screen-cart">
+      <div class="list-head">
+        <button class="target nav-btn" data-action="back">← 더 담기</button>
+        <h2 class="screen-title">🛒 장바구니</h2>
+        <div></div>
+      </div>
+      <div class="cart-list" id="cart-list"></div>
+      <div class="cart-foot">
+        <div class="cart-total-label">합계 <b id="cart-total">0원</b></div>
+        <button class="target big-btn" data-action="order" id="order-btn">주문하기</button>
+      </div>
+      <p class="hint center">＋/− 로 수량 변경 · 👍 엄지를 0.7초 유지하면 주문</p>
     </section>
   </main>
 
   <!-- 확인 팝업 -->
   <div class="modal" id="modal">
     <div class="modal-box">
-      <div class="modal-icon">✅</div>
+      <div class="modal-icon" id="modal-icon">✅</div>
       <h2 id="modal-title">완료</h2>
+      <div class="modal-num" id="modal-num"></div>
       <p id="modal-body"></p>
-      <div class="qr" id="modal-qr"></div>
-      <button class="target big-btn" data-action="close-modal">닫기</button>
+      <button class="target big-btn" data-action="close-modal">확인</button>
     </div>
+  </div>
+
+  <!-- 장바구니 바 (홈·목록·상세 화면 하단) -->
+  <div class="cartbar" id="cartbar">
+    <span id="cartbar-text">🛒 장바구니가 비어 있어요</span>
+    <button class="target cartbar-btn" data-action="open-cart">장바구니 보기 →</button>
   </div>
 
   <!-- 하단 제스처 안내 -->

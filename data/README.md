@@ -20,7 +20,8 @@ data/
 - 손 박스 + 제스처 라벨이 이미 있음 → **라벨링 없이** 바로 객체탐지 학습 가능
 - 전체는 수백 GB → **필요한 6개 클래스만**, 그것도 **경량판(512px) 또는 subsample** 로 받기
   - 공식 `download.py` 의 `--targets one fist palm like dislike peace` 옵션으로 클래스만 선택
-  - 또는 Kaggle 의 HaGRID 축소판(예: 384p/512p sample) — 받은 출처를 아래 표에 기록
+  - **권장(첫 학습)**: Hugging Face `cj-mills/hagrid-sample-120k-384p` (zip 3.5GB, 384p, 18클래스 중 6개만 변환) — 받는 법은 [docs/07](../docs/07_model_part_start.md)
+  - 축소판은 주석이 split 별로 안 나뉘어 있어 `prepare_hagrid.py` 가 **user_id(사람) 단위 8:1:1** 로 자동 분할
 - 주석 형식: `annotations/<split>/<class>.json` → `{"이미지ID": {"bboxes": [[x,y,w,h], ...], "labels": [...]}}`
   (x, y = 왼쪽 위, 모두 0~1 정규화)
 

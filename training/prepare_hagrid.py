@@ -21,7 +21,9 @@ HaGRID 주석 형식 (클래스별 JSON, 예: annotations/train/one.json)
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
 import random
 import shutil
 from pathlib import Path
@@ -63,22 +65,65 @@ def convert_record(rec: dict, class_to_id: Dict[str, int],
     return out
 
 
+IMAGE_EXTS = {".jpg", ".jpeg", ".png"}
+_IMAGE_INDEX: Dict[Path, Dict[str, Path]] = {}
+
+
+def _image_index(images_root: Path) -> Dict[str, Path]:
+    """이미지ID → 경로 색인 (폴더를 한 번만 훑음). 이미지마다 rglob 하면 수만 장에서 매우 느림."""
+    key = images_root.resolve()
+    if key not in _IMAGE_INDEX:
+        idx: Dict[str, Path] = {}
+        for dirpath, _, files in os.walk(images_root):
+            for name in files:
+                stem, ext = os.path.splitext(name)
+                if ext.lower() in IMAGE_EXTS:
+                    idx.setdefault(stem, Path(dirpath) / name)
+        _IMAGE_INDEX[key] = idx
+    return _IMAGE_INDEX[key]
+
+
 def find_image(images_root: Path, cls: str, image_id: str) -> Optional[Path]:
     for cand in (images_root / cls / f"{image_id}.jpg", images_root / f"{image_id}.jpg",
                  images_root / cls / f"{image_id}.png"):
         if cand.exists():
             return cand
-    hits = list(images_root.rglob(f"{image_id}.*"))
-    return hits[0] if hits else None
+    return _image_index(images_root).get(image_id)
+
+
+def assign_split(image_id: str, rec: dict, ratios: Tuple[float, float] = (0.8, 0.1)) -> str:
+    """주석이 split 별로 나뉘어 있지 않을 때 직접 나누기.
+
+    같은 사람(user_id)의 사진이 학습과 테스트에 동시에 들어가면 점수가 부풀려지므로
+    user_id 해시로 사람 단위로 나눈다 (user_id 가 없으면 이미지ID 로).
+    결과가 실행할 때마다 같도록 random 대신 해시를 쓴다.
+    """
+    key = str(rec.get("user_id") or image_id)
+    r = int(hashlib.md5(key.encode("utf-8")).hexdigest()[:8], 16) / 0xFFFFFFFF
+    if r < ratios[0]:
+        return "train"
+    return "val" if r < ratios[0] + ratios[1] else "test"
 
 
 def load_annotations(ann_dir: Path, split: str, cls: str) -> Dict[str, dict]:
-    for cand in (ann_dir / split / f"{cls}.json", ann_dir / f"{split}_{cls}.json",
-                 ann_dir / f"{cls}.json"):
+    """split 별 주석을 읽는다.
+
+    1) ann_dir/<split>/<cls>.json 또는 ann_dir/<split>_<cls>.json 이 있으면 그대로 사용 (공식판)
+    2) 없으면 split 구분 없는 <cls>.json (축소판 등)을 찾아 assign_split 으로 나눠서 사용
+    """
+    for cand in (ann_dir / split / f"{cls}.json", ann_dir / f"{split}_{cls}.json"):
         if cand.exists():
             with open(cand, encoding="utf-8") as f:
                 return json.load(f)
-    return {}
+    cand = ann_dir / f"{cls}.json"
+    if not cand.exists():
+        hits = sorted(ann_dir.rglob(f"{cls}.json"))
+        cand = hits[0] if hits else None
+    if cand is None:
+        return {}
+    with open(cand, encoding="utf-8") as f:
+        data = json.load(f)
+    return {k: v for k, v in data.items() if assign_split(k, v) == split}
 
 
 def build_split(ann_dir: Path, split: str, classes: Sequence[str], max_per_class: int,
@@ -90,6 +135,8 @@ def build_split(ann_dir: Path, split: str, classes: Sequence[str], max_per_class
         if cls == "no_gesture":
             continue
         ann = load_annotations(ann_dir, split, cls)
+        if not ann:
+            print(f"⚠️  {split}/{cls}: 주석을 찾지 못했습니다 (--ann-dir 확인)")
         keys = sorted(ann.keys())
         rng.shuffle(keys)
         if max_per_class > 0:
@@ -200,7 +247,10 @@ def main(argv: Optional[Iterable[str]] = None) -> None:
     class_to_id = {c: i for i, c in enumerate(classes)}
     for split in args.splits:
         # 검증·테스트는 학습의 1/5 만 사용 (시간 절약)
-        cap = args.max_per_class if split == "train" else max(1, args.max_per_class // 5)
+        # (--max-per-class 0 = 전부 → 검증·테스트도 전부)
+        cap = args.max_per_class
+        if split != "train" and cap > 0:
+            cap = max(1, cap // 5)
         items = build_split(args.ann_dir, split, classes, cap, args.seed)
         if args.format in ("yolo", "both"):
             n = write_yolo(items, args.images_root, args.out, split, class_to_id,

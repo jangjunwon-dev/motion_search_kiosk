@@ -37,6 +37,15 @@ class Detection:
         return ((x1 + x2) / 2, (y1 + y2) / 2)
 
 
+def iou(a: Tuple[float, float, float, float], b: Tuple[float, float, float, float]) -> float:
+    """두 박스의 겹침 정도 (Intersection over Union, 0~1)."""
+    ix = max(0.0, min(a[2], b[2]) - max(a[0], b[0]))
+    iy = max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
+    inter = ix * iy
+    union = (a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - inter
+    return inter / union if union > 0 else 0.0
+
+
 @dataclass
 class GestureConfig:
     """제스처 해석 파라미터. configs/app.yaml 의 gesture 항목과 1:1 대응."""
@@ -55,6 +64,7 @@ class GestureConfig:
     hold_s: float = 0.7              # like/dislike/peace 를 이만큼 유지해야 명령
     cooldown_s: float = 0.9          # 명령 직후 재발생 차단 시간
     lost_after_s: float = 1.0        # 손이 안 보인 지 이 시간이 지나면 hand_lost
+    same_hand_iou: float = 0.5       # 이만큼 겹치는 박스는 같은 손으로 보고 신뢰도 높은 쪽 선택
     # 제스처 클래스 → 역할 (모델 클래스 이름이 달라도 여기서 맞춤)
     pointer_labels: Tuple[str, ...] = ("one", "point")
     grab_labels: Tuple[str, ...] = ("fist", "grabbing", "grip")
@@ -157,13 +167,20 @@ class GestureInterpreter:
         return events
 
     def select_active_hand(self, detections: List[Detection]) -> Optional[Detection]:
-        """신뢰도·크기 조건을 통과한 손 중 가장 큰 것(가장 가까운 사용자)."""
+        """신뢰도·크기 조건을 통과한 손 중 가장 큰 것(가장 가까운 사용자).
+
+        같은 손에 클래스만 다른 박스가 겹쳐 나오는 경우가 있음 (예: palm 0.45 + like 0.44,
+        손 모양이 바뀌는 순간에 특히 많음). 크기만 보면 매 프레임 라벨이 바뀌어 깜빡이므로,
+        가장 큰 손과 많이 겹치는(IoU ≥ same_hand_iou) 박스들 중에서는 신뢰도가 가장 높은 것을 고른다.
+        """
         cands = [d for d in detections
                  if d.conf >= self.cfg.min_conf and d.area >= self.cfg.min_hand_area
                  and d.label != "no_gesture"]
         if not cands:
             return None
-        return max(cands, key=lambda d: d.area)
+        biggest = max(cands, key=lambda d: d.area)
+        same_hand = [d for d in cands if iou(d.box, biggest.box) >= self.cfg.same_hand_iou]
+        return max(same_hand, key=lambda d: d.conf)
 
     # ------------------------------------------------------------------ 내부 로직
     def _vote(self) -> Optional[str]:

@@ -11,7 +11,7 @@
 ## 1-1. 팀 구성
 | 파트 | 담당 | 폴더 |
 |---|---|---|
-| 🅐 손동작 탐지 모델 (데이터·학습·성능평가) | 팀원 (GitHub `himmelmin`) | `training/`, `models/`, `data/` |
+| 🅐 손동작 탐지 모델 (데이터·학습·성능평가) | 성민수 (GitHub `himmelmin`) | `training/`, `models/`, `data/` |
 | 🅑 키오스크 서비스 (제스처 해석·웹·통합) + 저장소 관리 | 장준원 | `kiosk/`, `web/`, `configs/` |
 
 ## 2. 고정된 환경 (임의로 바꾸지 말 것)
@@ -42,6 +42,7 @@ python -m pip install -r requirements-model.txt  # 모델 추론/학습 (torch �
 python -m pytest                               # 반드시 통과
 python -m kiosk --mock                         # 카메라·모델 없이 화면 확인
 python -m kiosk                                # 웹캠 + YOLO
+python -m kiosk --video 영상.mp4                # 웹캠 대신 녹화 영상 (재현 테스트·시연 백업)
 ```
 코드를 수정했다면 **`python -m pytest` 통과** 를 확인한 뒤 완료라고 보고할 것.
 

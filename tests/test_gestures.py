@@ -139,3 +139,19 @@ def test_쿨다운중에는_명령_재발생_없음():
     gi = GestureInterpreter(GestureConfig(cooldown_s=5.0))
     ev, _ = feed(gi, [[hand("like")]] * (FPS * 3))
     assert types(ev).count("confirm") == 1
+
+
+def test_같은손에_겹친_박스는_신뢰도_높은쪽():
+    """palm 박스가 조금 더 커도, 같은 손 위의 like 신뢰도가 높으면 like 를 고른다."""
+    gi = GestureInterpreter(GestureConfig(min_conf=0.3))
+    big_palm = hand("palm", size=0.22, conf=0.45)
+    like = hand("like", size=0.20, conf=0.80)
+    assert gi.select_active_hand([big_palm, like]).label == "like"
+
+
+def test_떨어진_다른손은_신뢰도보다_크기우선():
+    """멀리 있는 작은 손(뒤에 지나가는 사람)은 신뢰도가 높아도 고르지 않는다."""
+    gi = GestureInterpreter(GestureConfig(min_conf=0.3))
+    near = hand("palm", cx=0.3, size=0.25, conf=0.5)
+    far = hand("like", cx=0.8, size=0.08, conf=0.95)
+    assert gi.select_active_hand([near, far]).label == "palm"

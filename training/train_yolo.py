@@ -15,6 +15,8 @@ import argparse
 import shutil
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parent.parent  # 어디서 실행해도 저장소 models/ 에 저장
+
 
 def main() -> None:
     ap = argparse.ArgumentParser()
@@ -43,8 +45,8 @@ def main() -> None:
     )
     best = Path(args.project) / args.name / "weights" / "best.pt"
     if best.exists():
-        Path("models").mkdir(exist_ok=True)
-        dst = Path("models") / f"{args.name}.pt"
+        (ROOT / "models").mkdir(exist_ok=True)
+        dst = ROOT / "models" / f"{args.name}.pt"
         shutil.copy2(best, dst)
         print(f"✅ 가중치 복사 완료 → {dst}")
         print("   공유 드라이브 models/ 에도 올리고 models/README.md 표를 갱신하세요.")

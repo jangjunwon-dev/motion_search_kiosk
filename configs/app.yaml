@@ -6,6 +6,8 @@ camera:
   index: 0            # 노트북 내장 카메라 = 0, 외장 USB 카메라 = 1 인 경우가 많음
   width: 1280
   height: 720
+  video: null         # 녹화 영상 경로를 적으면 웹캠 대신 사용 (python -m kiosk --video 파일.mp4 와 같음)
+  loop: true          # 영상이 끝나면 처음부터 반복
 
 detector:
   backend: yolo       # mock / yolo / rfdetr
@@ -34,6 +36,7 @@ gesture:
   hold_s: 0.7
   cooldown_s: 0.9
   lost_after_s: 1.0
+  same_hand_iou: 0.5        # 같은 손에 겹친 박스(클래스만 다름) → 신뢰도 높은 쪽 선택
   hold_commands:
     like: confirm
     dislike: back

@@ -42,7 +42,7 @@ body {
 .dot.warn { background: var(--accent); }
 
 /* ---------- 화면 전환 ---------- */
-#screens { position: relative; height: calc(100vh - 88px - 96px); }
+#screens { position: relative; height: calc(100vh - 88px - 96px - 76px); }  /* 상단바·하단안내·장바구니바 */
 .screen {
   position: absolute; inset: 0; padding: 32px 48px; display: none;
   animation: fade .25s ease;
@@ -132,7 +132,7 @@ button { font-family: inherit; cursor: none; }
 .g.on { color: var(--text); border-color: var(--accent); background: rgba(255, 181, 71, .12); }
 
 /* ---------- 카메라 미리보기 ---------- */
-.preview { position: fixed; right: 20px; bottom: 112px; width: 300px; border-radius: 16px; overflow: hidden;
+.preview { position: fixed; right: 20px; bottom: 188px; width: 300px; border-radius: 16px; overflow: hidden;
   border: 2px solid var(--line); background: #000; display: none; }
 .preview.show { display: block; }
 .preview img { width: 100%; display: block; }
@@ -160,7 +160,7 @@ button { font-family: inherit; cursor: none; }
 .hold-bar i { display: block; height: 100%; width: 0; background: var(--accent); }
 
 /* 알림 */
-.toast { position: fixed; left: 50%; top: 110px; transform: translate(-50%, -20px); opacity: 0;
+.toast { position: fixed; left: 50%; bottom: 196px; transform: translate(-50%, 20px); opacity: 0;
   background: var(--accent); color: #1b1b1b; font-weight: 800; font-size: 24px; padding: 14px 30px;
   border-radius: 999px; transition: all .25s; z-index: 60; pointer-events: none; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
@@ -172,5 +172,47 @@ button { font-family: inherit; cursor: none; }
 .modal-icon { font-size: 64px; }
 .modal-box h2 { font-size: 36px; margin: 10px 0; }
 .modal-box p { font-size: 21px; color: var(--muted); }
-.qr { width: 180px; height: 180px; margin: 20px auto 28px; border-radius: 12px; background:
-  repeating-conic-gradient(#fff 0 25%, #111 0 50%) 0 0 / 30px 30px; border: 10px solid #fff; }
+.modal-num { font-size: 64px; font-weight: 900; color: var(--accent); margin: 8px 0; letter-spacing: 2px; }
+.modal-box .big-btn { margin-top: 18px; }
+
+/* ---------- 주문 키오스크 ---------- */
+.card .emoji { font-size: 64px; line-height: 1; }
+.detail-emoji { font-size: 72px; line-height: 1; }
+.detail { padding: 24px 56px; margin-top: 0; }
+.detail h1 { font-size: 46px; }
+.detail-sub { margin-bottom: 12px; }
+.detail-body { margin: 0; }
+.detail .tags { margin: 14px 0 20px; }
+.detail .hint { margin: 12px 0 0; }
+.detail-actions { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; }
+.big-btn.ghost { background: var(--bg2); color: var(--text); border: 2px solid var(--accent); }
+.big-btn.ghost.hover { background: var(--card-hi); }
+.big-btn:disabled { opacity: .35; }
+.hint.center { text-align: center; }
+
+/* 장바구니 바 */
+.cartbar { position: fixed; left: 0; right: 0; bottom: 96px; height: 76px; display: none;
+  align-items: center; justify-content: space-between; padding: 0 48px;
+  background: var(--bg2); border-top: 1px solid var(--line); font-size: 24px; font-weight: 700; }
+.cartbar.show { display: flex; }
+.cartbar.bump { animation: bump .35s ease; }
+@keyframes bump { 50% { background: #3a4a24; } }
+.cartbar-btn { font-size: 22px; font-weight: 800; padding: 12px 28px; border-radius: 999px;
+  background: var(--accent); color: #1b1b1b; border: 2px solid transparent; }
+
+/* 장바구니 화면 */
+#screen-cart.active { display: flex; flex-direction: column; }
+.cart-list { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 14px; }
+.cart-row { display: grid; grid-template-columns: 1fr 88px 70px 88px 180px; align-items: center; gap: 14px;
+  background: var(--card); border: 2px solid var(--line); border-radius: 18px; padding: 14px 24px; }
+.cart-name { font-size: 28px; font-weight: 800; }
+.cart-name .opt { font-size: 16px; background: var(--accent); color: #1b1b1b; padding: 4px 10px;
+  border-radius: 999px; vertical-align: middle; }
+.qty-btn { height: 72px; font-size: 40px; font-weight: 800; border-radius: 16px; background: var(--bg2);
+  color: var(--text); border: 2px solid var(--line); }
+.qty { text-align: center; font-size: 32px; font-weight: 800; }
+.cart-price { text-align: right; font-size: 26px; font-weight: 700; color: var(--accent2); }
+.cart-empty { text-align: center; font-size: 30px; color: var(--muted); margin-top: 60px; line-height: 1.6; }
+.cart-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; }
+.cart-total-label { font-size: 28px; color: var(--muted); }
+.cart-total-label b { font-size: 44px; color: var(--text); margin-left: 12px; }

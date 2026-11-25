@@ -1,6 +1,6 @@
 # ✋ 모션인식 탐색 키오스크 (Motion Search Kiosk)
 
-> **화면을 만지지 않고 손동작만으로 정보를 찾아보는 비접촉 안내 키오스크**
+> **화면을 만지지 않고 손동작만으로 메뉴를 고르고 주문하는 비접촉 주문 키오스크** (롯데리아 메뉴로 만든 수업용 데모 · 롯데리아와 무관)
 > 카메라 영상에서 **손동작을 객체탐지(YOLO26 / RF-DETR)** 로 찾고, 그 결과를 커서 이동·선택·페이지 넘김·확인·뒤로 같은 **키오스크 명령**으로 바꿔 웹 화면을 조작합니다.
 > 객체탐지(첨단) 기말프로젝트 — 전주대학교 인공지능학과
 
@@ -8,7 +8,7 @@
 |---|---|
 | 탐지 모델 | **Ultralytics YOLO26** (주력) · **RF-DETR** (비교) — 손동작 6종 탐지 |
 | 데이터 | **HaGRID** 손동작 데이터셋 (클래스: one, fist, palm, like, dislike, peace) |
-| 서비스 | Python **FastAPI** 백엔드 + **WebSocket** + HTML/CSS/JS 키오스크 화면 |
+| 서비스 | Python **FastAPI** 백엔드 + **WebSocket** + HTML/CSS/JS 주문 화면 (메뉴 → 단품/세트 → 장바구니 → 주문번호) |
 | 실행 환경 | Windows 11 / macOS / Linux, Python 3.11~3.13, 웹캠 1대 |
 | 학습 | Google Colab (GPU) 또는 개인 GPU |
 | 협업 | GitHub (feature 브랜치 → PR → `main`) |

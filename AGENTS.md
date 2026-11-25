@@ -56,7 +56,8 @@ python -m kiosk --video 영상.mp4                # 웹캠 대신 녹화 영상 
 - Python: PEP 8, 최대 줄 길이 99, 타입 힌트 권장
 - 주석·로그·문서·UI 문구는 **한국어**, 식별자는 영어 snake_case (JS 는 camelCase)
 - 임계값·경로는 `configs/app.yaml` 로. 새 의존성은 `requirements*.txt` 에 반드시 추가
-- 콘텐츠(건물·식단 등)는 `web/content/kiosk_content.json` 에만. **사실 확인 안 된 정보는 "(예시)" 표기 유지**
+- 콘텐츠(메뉴·가격 등)는 `web/content/kiosk_content.json` 에만. **출처(source) 없는 정보는 "(예시)" 표기** (`tests/test_content.py` 가 검사)
+- 실제 브랜드(롯데리아) 메뉴를 쓰므로 **로고·공식 이미지 사용 금지**, 화면에 "수업용 데모 (롯데리아와 무관)" 표기 유지
 - 성능 수치(mAP, FPS, 인식률)는 실제로 측정한 값만 `docs/experiments.md` 에 기록 — 추정치·지어낸 값 금지
 
 ## 7. Git 규칙 (상세: `docs/01_git_workflow.md`)

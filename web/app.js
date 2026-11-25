@@ -1,4 +1,6 @@
-/* 모션인식 탐색 키오스크 — 화면 쪽 로직
+/* 모션인식 탐색 키오스크 — 화면 쪽 로직 (패스트푸드 비접촉 주문)
+ *
+ * 화면 흐름: 대기 → 홈(카테고리) → 메뉴 목록(스와이프) → 상세(단품/세트 담기) → 장바구니 → 주문 완료
  *
  * 서버(WebSocket /ws)에서 오는 이벤트
  *   cursor {x,y}   : 손 커서 이동 (0~1 정규화)
@@ -30,7 +32,12 @@ const state = {
   hoverSince: 0,
   lastInput: Date.now(),
   history: [],
+  cart: [],           // [{key, title, emoji, option, price, qty}]
+  orderNo: 100 + Math.floor(Math.random() * 800),
+  ordered: false,     // 주문 완료 팝업이 떠 있는지
 };
+
+const won = (n) => n.toLocaleString("ko-KR") + "원";
 
 /* ------------------------------------------------------------ 콘텐츠 */
 async function loadContent() {
@@ -48,6 +55,8 @@ async function loadContent() {
     el.innerHTML = `<div class="icon">${c.icon}</div><div><div class="name">${c.name}</div><div class="desc">${c.desc}</div></div>`;
     grid.appendChild(el);
   });
+  // 타일이 4개 이하면 2열로 크게 (멀리서 손으로 가리키기 쉽게)
+  grid.style.gridTemplateColumns = `repeat(${state.content.categories.length <= 4 ? 2 : 3}, 1fr)`;
 }
 
 /* ------------------------------------------------------------ 화면 전환 */
@@ -56,6 +65,7 @@ function show(screen, push = true) {
   state.screen = screen;
   document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
   $("screen-" + screen).classList.add("active");
+  updateCartBar();
 }
 
 function openCategory(id) {
@@ -81,7 +91,7 @@ function renderList(slide) {
     el.className = "card target";
     el.dataset.action = "open-item";
     el.dataset.index = start + i;
-    el.innerHTML = `<h3>${it.title}</h3><div class="sub">${it.subtitle}</div><div class="body">${it.body}</div>`;
+    el.innerHTML = `<div class="emoji">${it.emoji || state.cat.icon}</div><h3>${it.title}</h3><div class="sub">${it.subtitle}</div><div class="body">${it.body}</div>`;
     row.appendChild(el);
   }
   const pager = $("pager");
@@ -99,14 +109,97 @@ function renderList(slide) {
 }
 
 function openItem(index) {
-  state.item = state.cat.items[index];
+  const it = (state.item = state.cat.items[index]);
   $("detail-cat").textContent = `${state.cat.icon} ${state.cat.name}`;
-  $("detail-title").textContent = state.item.title;
-  $("detail-sub").textContent = state.item.subtitle;
-  $("detail-body").textContent = state.item.body;
-  $("detail-tags").innerHTML = (state.item.tags || []).map((t) => `<span>#${t}</span>`).join("");
-  $("detail-action").textContent = state.item.action || "확인";
+  $("detail-emoji").textContent = it.emoji || state.cat.icon;
+  $("detail-title").textContent = it.title;
+  $("detail-sub").textContent = it.subtitle;
+  $("detail-body").textContent = it.body;
+  $("detail-tags").innerHTML = (it.tags || []).map((t) => `<span>#${t}</span>`).join("");
+  // 담기 버튼: 세트가 있으면 단품/세트 두 개, 가격만 있으면 하나, 가격 없으면(도움말) 확인
+  const box = $("detail-actions");
+  if (it.set_price) {
+    box.innerHTML = `<button class="target big-btn ghost" data-action="add" data-opt="단품">단품 담기 · ${won(it.price)}</button>`
+      + `<button class="target big-btn" data-action="add" data-opt="세트">세트 담기 · ${won(it.set_price)}</button>`;
+    $("detail-hint").textContent = `${state.content.set_desc || ""}  ·  👍 엄지를 0.7초 유지하면 단품을 담아요`;
+  } else if (it.price) {
+    box.innerHTML = `<button class="target big-btn" data-action="add" data-opt="단품">담기 · ${won(it.price)}</button>`;
+    $("detail-hint").textContent = "👍 엄지를 0.7초 유지해도 담겨요";
+  } else {
+    box.innerHTML = `<button class="target big-btn" data-action="back">${it.action || "확인"}</button>`;
+    $("detail-hint").textContent = "";
+  }
   show("detail");
+}
+
+/* ------------------------------------------------------------ 장바구니 */
+function cartTotal() { return state.cart.reduce((s, c) => s + c.price * c.qty, 0); }
+function cartCount() { return state.cart.reduce((s, c) => s + c.qty, 0); }
+
+function addToCart(item, option) {
+  const price = option === "세트" ? item.set_price : item.price;
+  const key = `${item.id}:${option}`;
+  const line = state.cart.find((c) => c.key === key);
+  if (line) line.qty++;
+  else state.cart.push({ key, title: item.title, emoji: item.emoji || "", option, price, qty: 1 });
+  const name = item.set_price ? `${item.title} ${option}` : item.title;
+  toast(`🛒 ${name} 담았어요`);
+  updateCartBar(true);
+}
+
+function changeQty(key, delta) {
+  const line = state.cart.find((c) => c.key === key);
+  if (!line) return;
+  line.qty += delta;
+  if (line.qty <= 0) state.cart = state.cart.filter((c) => c !== line);
+  renderCart();
+}
+
+function updateCartBar(bump) {
+  const bar = $("cartbar");
+  const visible = !["idle", "cart"].includes(state.screen);
+  bar.classList.toggle("show", visible);
+  $("cartbar-text").textContent = state.cart.length
+    ? `🛒 ${cartCount()}개 · ${won(cartTotal())}` : "🛒 장바구니가 비어 있어요";
+  if (bump) { bar.classList.remove("bump"); void bar.offsetWidth; bar.classList.add("bump"); }
+}
+
+function renderCart() {
+  const list = $("cart-list");
+  list.innerHTML = "";
+  if (!state.cart.length) {
+    list.innerHTML = `<div class="cart-empty">장바구니가 비어 있어요<br><small>👎 뒤로 가서 메뉴를 담아 주세요</small></div>`;
+  }
+  state.cart.forEach((c) => {
+    const row = document.createElement("div");
+    row.className = "cart-row";
+    const opt = c.option === "세트" ? `<span class="opt">세트</span>` : "";
+    row.innerHTML = `<div class="cart-name">${c.emoji} ${c.title} ${opt}</div>`
+      + `<button class="target qty-btn" data-action="dec" data-key="${c.key}">−</button>`
+      + `<div class="qty">${c.qty}</div>`
+      + `<button class="target qty-btn" data-action="inc" data-key="${c.key}">+</button>`
+      + `<div class="cart-price">${won(c.price * c.qty)}</div>`;
+    list.appendChild(row);
+  });
+  $("cart-total").textContent = won(cartTotal());
+  $("order-btn").disabled = !state.cart.length;
+}
+
+function placeOrder() {
+  if (!state.cart.length) return toast("담은 메뉴가 없어요");
+  state.orderNo++;
+  $("modal-icon").textContent = "✅";
+  $("modal-title").textContent = "주문이 접수되었어요";
+  $("modal-num").textContent = `주문번호 ${state.orderNo}`;
+  $("modal-body").textContent = `${cartCount()}개 · ${won(cartTotal())} — 결제는 카운터에서 (수업용 데모)`;
+  $("modal").classList.add("show");
+  state.ordered = true;
+}
+
+function resetSession() {
+  state.cart = [];
+  state.history = [];
+  state.ordered = false;
 }
 
 /* ------------------------------------------------------------ 명령 */
@@ -114,6 +207,11 @@ const commands = {
   start() { show("home", false); state.history = []; toast("환영합니다 👋"); },
   "open-cat"(el) { openCategory(el.dataset.id); },
   "open-item"(el) { openItem(Number(el.dataset.index)); },
+  add(el) { addToCart(state.item, el ? el.dataset.opt : "단품"); commands.back(); },
+  "open-cart"() { renderCart(); show("cart"); },
+  inc(el) { changeQty(el.dataset.key, +1); },
+  dec(el) { changeQty(el.dataset.key, -1); },
+  order() { placeOrder(); },
   next() {
     if (state.screen !== "list") return;
     if (state.page < pageCount() - 1) { state.page++; renderList("next"); }
@@ -124,15 +222,22 @@ const commands = {
     if (state.page > 0) { state.page--; renderList("prev"); }
     else toast("첫 페이지예요");
   },
+  // 👍 = 지금 화면의 '기본 동작' (대기: 시작, 상세: 단품 담기, 장바구니: 주문, 팝업: 닫기)
   confirm() {
     if ($("modal").classList.contains("show")) return commands["close-modal"]();
     if (state.screen === "idle") return commands.start();
-    if (state.screen !== "detail") return toast("👍 상세 화면에서 사용할 수 있어요");
-    $("modal-title").textContent = state.item.action || "완료";
-    $("modal-body").textContent = `${state.item.title} — 휴대폰으로 QR을 찍어 주세요 (예시)`;
-    $("modal").classList.add("show");
+    if (state.screen === "cart") return placeOrder();
+    if (state.screen === "detail") {
+      if (state.item.price) return commands.add(null);
+      return commands.back();
+    }
+    toast("👍 메뉴 상세 · 장바구니에서 사용할 수 있어요");
   },
-  "close-modal"() { $("modal").classList.remove("show"); },
+  "close-modal"() {
+    const wasOrder = state.ordered && $("modal").classList.contains("show");
+    $("modal").classList.remove("show");
+    if (wasOrder) { resetSession(); show("idle", false); }  // 주문 끝 → 다음 손님
+  },
   back() {
     if ($("modal").classList.contains("show")) return commands["close-modal"]();
     const prev = state.history.pop();
@@ -208,8 +313,8 @@ function dwellTick() {
     ring.style.strokeDashoffset = full;
   }
   if (Date.now() - state.lastInput > IDLE_MS && state.screen !== "idle") {
-    commands["close-modal"]();
-    state.history = [];
+    $("modal").classList.remove("show");
+    resetSession();        // 손님이 떠나면 장바구니 비우기
     show("idle", false);
   }
   requestAnimationFrame(dwellTick);

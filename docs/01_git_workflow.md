@@ -73,7 +73,7 @@ git push --force-with-lease     # 내 브랜치에만! main 에는 절대 금지
 
 ## 7. GitHub 저장소 설정 (관리자 장준원 1회)
 
-- [ ] Settings → Collaborators → **`himmelmin`** 초대 (Write 권한) → 팀원이 메일/알림에서 수락
+- [ ] Settings → Collaborators → **`himmelmin`** 초대 (Write 권한) → 성민수가 메일/알림에서 수락
 - [ ] Settings → Branches → `main` 보호 규칙: *Require a pull request* (승인 1), *Require status checks* (CI `test`)
 - [ ] Settings → General → *Allow squash merging* 만 체크, *Automatically delete head branches* 체크
 - [ ] About 에 설명·토픽(`object-detection`, `yolo`, `hand-gesture`, `kiosk`) 추가

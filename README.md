@@ -64,7 +64,7 @@
 5. **내 AI에 프로젝트 인식시키기** → [docs/04_ai_assistant_guide.md](docs/04_ai_assistant_guide.md)
 6. **발표 준비** → [docs/05_presentation_guide.md](docs/05_presentation_guide.md)
 7. **코드 작동 원리 (발표 때 직접 설명해야 함!)** → [docs/06_how_it_works.md](docs/06_how_it_works.md)
-8. **🅐 모델 파트 첫 작업 (팀원은 여기부터!)** → [docs/07_model_part_start.md](docs/07_model_part_start.md)
+8. **🅐 모델 파트 첫 작업 (성민수는 여기부터!)** → [docs/07_model_part_start.md](docs/07_model_part_start.md)
 
 ```powershell
 # Windows PowerShell (macOS/Linux 는 docs/00 참고)

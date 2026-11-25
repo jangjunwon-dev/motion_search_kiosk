@@ -37,7 +37,7 @@ python training/prepare_hagrid.py --ann-dir data/raw/hagrid/annotations `
 
 | 버전 | 원본 출처 | 클래스 | 장수 (train/val/test) | 변환 옵션 | 날짜 | 담당 |
 |---|---|---|---|---|---|---|
-| `hagrid_v1` | | one, fist, palm, like, dislike, peace | | `--max-per-class 3000` | | 🅐 |
+| `hagrid_v1` | | one, fist, palm, like, dislike, peace | | `--max-per-class 3000` | | 🅐 성민수 |
 
 ## 우리 데이터 추가 (선택, 성능 개선용)
 키오스크 설치 환경(복도·조명·거리 1~2m)과 HaGRID 가 다르면 오탐이 생길 수 있습니다.

@@ -12,8 +12,8 @@
 
 | 파일명 | 기반 모델 | 데이터 버전 | epochs / imgsz | mAP50 | mAP50-95 | CPU 지연(ms) | GPU 지연(ms) | 날짜 | 담당 |
 |---|---|---|---|---|---|---|---|---|---|
-| `gesture_yolo26n.pt` | yolo26n.pt | `hagrid_v1` | | | | | | | 🅐 |
-| `gesture_yolo26s.pt` | yolo26s.pt | `hagrid_v1` | | | | | | | 🅐 |
-| `gesture_rfdetr_base.pth` | RF-DETR Base | `hagrid_v1` (COCO) | | | | | | | 🅐 |
+| `gesture_yolo26n.pt` | yolo26n.pt | `hagrid_v1` | | | | | | | 🅐 성민수 |
+| `gesture_yolo26s.pt` | yolo26s.pt | `hagrid_v1` | | | | | | | 🅐 성민수 |
+| `gesture_rfdetr_base.pth` | RF-DETR Base | `hagrid_v1` (COCO) | | | | | | | 🅐 성민수 |
 
 측정 방법: `training/evaluate.py` (mAP: test split, 지연: `kiosk/detector.py` 래퍼로 동일 이미지 200장)

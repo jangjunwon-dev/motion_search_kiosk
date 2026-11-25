@@ -41,7 +41,7 @@ Cursor·VS Code Copilot 은 폴더를 열면 됩니다.
 2. 지식(Knowledge) 파일로 업로드: `AGENTS.md`, `docs/02_roadmap.md`, `docs/03_architecture.md`, 내 파트의 핵심 코드(`kiosk/gestures.py` 등)
 3. 프로젝트 지침(Instructions)에 붙여넣기:
    ```
-   이 프로젝트는 업로드한 AGENTS.md 규칙을 따른다. 나는 (장준원/팀원), (🅑/🅐) 담당이다.
+   이 프로젝트는 업로드한 AGENTS.md 규칙을 따른다. 나는 (장준원/성민수), (🅑/🅐) 담당이다.
    답변 전 02_roadmap.md 로 현재 단계를 확인하고, Windows PowerShell 명령으로 답한다.
    코드를 주면 발표 때 내가 설명할 수 있도록 작동 원리를 3줄로 같이 설명한다.
    ```

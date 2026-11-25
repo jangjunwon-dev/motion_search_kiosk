@@ -60,3 +60,34 @@ def test_전체_변환_yolo_coco(fake_hagrid):
     coco = json.loads((out / "coco" / "train" / "_annotations.coco.json").read_text())
     assert len(coco["images"]) == 6 and len(coco["annotations"]) == 6
     assert (out / "yolo" / "data.yaml").read_text().count(": ") >= 5
+
+
+def test_split_구분없는_주석은_사람단위로_겹치지않게_나눔(tmp_path):
+    """축소판처럼 <cls>.json 하나만 있을 때: train/val/test 가 겹치지 않고, 같은 사람은 한쪽에만."""
+    from PIL import Image
+
+    ann = tmp_path / "ann_train_val"          # split 폴더 없음
+    ann.mkdir()
+    imgs = tmp_path / "imgs" / "train_val_one"  # 클래스 폴더 이름도 다름 → 색인으로 찾아야 함
+    imgs.mkdir(parents=True)
+    data = {}
+    for i in range(200):
+        iid = f"img{i:03d}"
+        Image.new("RGB", (32, 32)).save(imgs / f"{iid}.jpg")
+        data[iid] = {"bboxes": [[0.2, 0.2, 0.3, 0.3]], "labels": ["one"], "user_id": f"u{i // 4}"}
+    (ann / "one.json").write_text(json.dumps(data))
+
+    out = tmp_path / "out"
+    ph.main(["--ann-dir", str(tmp_path), "--images-root", str(tmp_path / "imgs"),
+             "--out", str(out), "--classes", "one", "--max-per-class", "0", "--copy"])
+    names = {s: {p.stem for p in (out / "yolo" / "labels" / s).glob("*.txt")}
+             for s in ("train", "val", "test")}
+    assert sum(len(v) for v in names.values()) == 200          # 빠짐 없이
+    assert not (names["train"] & names["val"]) and not (names["train"] & names["test"])
+    assert not (names["val"] & names["test"])
+    assert len(names["train"]) > len(names["val"]) > 0          # 대략 8:1:1
+    for split, ids in names.items():                            # 같은 사람은 한 split 에만
+        users = {data[i]["user_id"] for i in ids}
+        for other, oids in names.items():
+            if other != split:
+                assert not users & {data[i]["user_id"] for i in oids}
